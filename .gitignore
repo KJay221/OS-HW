@@ -1,0 +1,17 @@
+*.odt
+*.pdf
+*.vscode
+*.csv
+*.out
+*.txt
+*.o
+*.zip
+*.html
+
+#HW1
+HW1/copy
+HW1/HW1_F74076297
+
+#HW2
+HW2/copy
+HW2/HW2_F74076297
