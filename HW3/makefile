@@ -5,6 +5,4 @@ storage.o: storage.cpp
 generate:
 	g++ -o generate.out generate.cpp
 clean:
-	rm *.o
-delete_out:
-	rm *out
+	rm *.o *out
