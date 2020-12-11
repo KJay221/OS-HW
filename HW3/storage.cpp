@@ -2,9 +2,14 @@
 #include <fstream>
 #include <string>
 #include <map>
+#include <ctime>
 using namespace std;
 
 int main(int argc, char *argv[]){
+    //count time
+    clock_t start_t,finish_t;
+    start_t = clock();
+
     //input filename
     string file_path=argv[1];
     
@@ -31,7 +36,35 @@ int main(int argc, char *argv[]){
     string output_string="";
     FILE *output_pt=NULL;
     string input="";
+    bool used_disk=false;
     while(getline(file, input)){
+        //8GB: 50000000 map.size
+        if(database.size()>2000){
+            used_disk=true;
+            string shell_command="./mkdir.sh storage";
+            system(shell_command.c_str());
+            //100MB: 650000
+            for(int i=0;i<1000;i++){
+                long long int index=0;
+                string file_string="storage/";
+                index=database.begin()->first;
+                long long int compare_bit=-72057594037927936;
+                for(int j=7;j>=1;j--){
+                    file_string+=to_string((index&compare_bit)>>(j*8));
+                    shell_command="./mkdir.sh "+file_string;
+                    system(shell_command.c_str());
+                    if(j!=1)
+                        file_string+="/";
+                    if(j != 7)
+                        compare_bit>>=8;
+                    else
+                        compare_bit=71776119061217280;
+
+                }
+                database.erase(database.begin());
+            }
+        }
+
         //split instruction
         string instruction = "";
         string p1 = "";
@@ -56,16 +89,22 @@ int main(int argc, char *argv[]){
         else if(instruction == "GET"){
             if(database.find(p1_int) != database.end())
                 output_string+=(database[p1_int]+"\n");
-            else
-                output_string+="EMPTY\n";
+            else{
+                if(!used_disk)
+                    output_string+="EMPTY\n";
+                else{
+
+                }
+            }   
         }
         else if(instruction == "SCAN"){
             long long int p2_int=stoll(p2);
             for(int i=0;i <= p2_int-p1_int;i++){
                 if(database.find(p1_int+i) != database.end())
                     output_string+=(database[p1_int+i]+"\n");
-                else
+                else{
                     output_string+="EMPTY\n";
+                }
             }
         }
 
@@ -91,4 +130,9 @@ int main(int argc, char *argv[]){
         output_string="";
         fclose(output_pt);
     }
+
+    //count time
+    finish_t = clock();
+    float second=(float)(finish_t-start_t)/CLOCKS_PER_SEC;
+    cout<<"second: "<<second<<endl;
 }
