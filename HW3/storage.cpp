@@ -3,13 +3,11 @@
 #include <string>
 #include <map>
 #include <ctime>
+#include <unistd.h>
+#include <sys/wait.h>
 using namespace std;
 
 int main(int argc, char *argv[]){
-    //count time
-    clock_t start_t,finish_t;
-    start_t = clock();
-
     //input filename
     string file_path=argv[1];
     
@@ -25,43 +23,88 @@ int main(int argc, char *argv[]){
     //open input file
     fstream file;
     file.open(file_path, ios::in);
-    //file.open("./1.input", ios::in);
     if(!file){
         cout<<"can't open file."<<endl;
         return 0;
     }
 
     //read instruction
-    map<unsigned long long int,string> database;
+    map<long long int,string> database;
     string output_string="";
     FILE *output_pt=NULL;
     string input="";
     bool used_disk=false;
     while(getline(file, input)){
+        //--------------------change--------------------
         //8GB: 50000000 map.size
-        if(database.size()>2000){
+        if(database.size()>3000){
             used_disk=true;
-            string shell_command="./mkdir.sh storage";
-            system(shell_command.c_str());
-            //100MB: 650000
-            for(int i=0;i<1000;i++){
+            char const *shell_command="./mkdir.sh";
+            string file_string="./storage";
+            int status;
+            if(!fork()){/*child process*/
+                execlp(shell_command,shell_command,file_string.c_str(),NULL);
+            }    
+            else{/*parent process*/
+                wait(&status);
+            }
+            //--------------------change--------------------
+            //need smaller than size*256
+            for(int i=0;i<20;i++){
                 long long int index=0;
-                string file_string="storage/";
+                file_string="./storage/";
                 index=database.begin()->first;
                 long long int compare_bit=-72057594037927936;
                 for(int j=7;j>=1;j--){
                     file_string+=to_string((index&compare_bit)>>(j*8));
-                    shell_command="./mkdir.sh "+file_string;
-                    system(shell_command.c_str());
+                    if(!fork()){/*child process*/
+                        execlp(shell_command,shell_command,file_string.c_str(),NULL);
+                    }    
+                    else{/*parent process*/
+                        wait(&status);
+                    }        
                     if(j!=1)
                         file_string+="/";
                     if(j != 7)
                         compare_bit>>=8;
                     else
                         compare_bit=71776119061217280;
-
                 }
-                database.erase(database.begin());
+                //get 256 data
+                string put_string="";
+                for (map<long long int,string>::iterator nowone=database.begin();(nowone->first-index)<256;){
+                    put_string+=(to_string(nowone->first)+" "+nowone->second+"\n");
+                    database.erase(database.begin());
+                    if(!database.empty())
+                        nowone=database.begin();
+                }
+                //write record file
+                fstream record;
+                int record_number=0;
+                record.open(file_string+"/record.txt", ios::in);
+                if(!record){
+                    record.open(file_string+"/record.txt",ios::out);
+                    record<<"0\n";
+                    record.close();
+                }
+                else{
+                    string file_number="0";
+                    if(getline(record,file_number)){
+                        record.close();
+                        record_number=stoi(file_number)+1;
+                        record.open(file_string+"/record.txt",ios::out);
+                        record<<record_number;
+                        record.close();
+                    }
+                    else{
+                        cout<<"no number in record"<<endl;
+                        record.close();
+                    }
+                }
+                //write data file
+                record.open(file_string+"/"+to_string(record_number)+".data",ios::out);
+                record<<put_string;
+                record.close();
             }
         }
 
@@ -130,9 +173,4 @@ int main(int argc, char *argv[]){
         output_string="";
         fclose(output_pt);
     }
-
-    //count time
-    finish_t = clock();
-    float second=(float)(finish_t-start_t)/CLOCKS_PER_SEC;
-    cout<<"second: "<<second<<endl;
 }
