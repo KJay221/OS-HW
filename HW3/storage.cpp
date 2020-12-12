@@ -5,6 +5,7 @@
 #include <ctime>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <limits>
 using namespace std;
 
 int main(int argc, char *argv[]){
@@ -37,7 +38,7 @@ int main(int argc, char *argv[]){
     while(getline(file, input)){
         //--------------------change--------------------
         //8GB: 50000000 map.size
-        if(database.size()>3000){
+        if(database.size()>50){
             used_disk=true;
             char const *shell_command="./mkdir.sh";
             string file_string="./storage";
@@ -50,12 +51,14 @@ int main(int argc, char *argv[]){
             }
             //--------------------change--------------------
             //need smaller than size*256
-            for(int i=0;i<20;i++){
+            for(int i=0;i<5;i++){
                 long long int index=0;
                 file_string="./storage/";
                 index=database.begin()->first;
+                long long int index_bit=0;
                 long long int compare_bit=-72057594037927936;
                 for(int j=7;j>=1;j--){
+                    index_bit+=(index&compare_bit);
                     file_string+=to_string((index&compare_bit)>>(j*8));
                     if(!fork()){/*child process*/
                         execlp(shell_command,shell_command,file_string.c_str(),NULL);
@@ -71,9 +74,12 @@ int main(int argc, char *argv[]){
                         compare_bit=71776119061217280;
                 }
                 //get 256 data
-                string put_string="";
+                string put_string_data="";
+                string put_string_index="";
+                bool index_exist[256]={false};
                 for (map<long long int,string>::iterator nowone=database.begin();(nowone->first-index)<256;){
-                    put_string+=(to_string(nowone->first)+" "+nowone->second+"\n");
+                    index_exist[(nowone->first)-index_bit]=true;
+                    put_string_data+=nowone->second+"\n";
                     database.erase(database.begin());
                     if(!database.empty())
                         nowone=database.begin();
@@ -103,7 +109,12 @@ int main(int argc, char *argv[]){
                 }
                 //write data file
                 record.open(file_string+"/"+to_string(record_number)+".data",ios::out);
-                record<<put_string;
+                record<<put_string_data;
+                record.close();
+                record.open(file_string+"/"+to_string(record_number)+".index",ios::out);
+                for(int j=0;j<256;j++){
+                    record<<index_exist[j];
+                }
                 record.close();
             }
         }
@@ -123,7 +134,7 @@ int main(int argc, char *argv[]){
             input.erase(0, pos + 1);
         }
         (instruction=="PUT" || instruction=="SCAN")? p2=input : p1=input;
-        
+  
         //deal instruction
         long long int p1_int=stoll(p1);
         if(instruction == "PUT"){
@@ -136,18 +147,78 @@ int main(int argc, char *argv[]){
                 if(!used_disk)
                     output_string+="EMPTY\n";
                 else{
-
+                    string file_string="./storage/";
+                    long long int compare_bit=-72057594037927936;
+                    for(int i=7;i>=1;i--){
+                        file_string+=to_string((p1_int&compare_bit)>>(i*8));     
+                        if(i != 1)
+                            file_string+="/";
+                        if(i != 7)
+                            compare_bit>>=8;
+                        else
+                            compare_bit=71776119061217280;
+                    }
+                    //read record file
+                    fstream record;
+                    record.open(file_string+"/record.txt", ios::in);
+                    if(!record)
+                        output_string+="EMPTY\n";
+                    else{
+                        string in_file_number="0";
+                        int record_number=0;
+                        if(getline(record,in_file_number)){
+                            record.close();
+                            record_number=stoi(in_file_number);
+                            for(int i=record_number;i>=0;i--){
+                                record.open(file_string+"/"+to_string(i)+".index", ios::in);
+                                char read_bit=' ';
+                                int data_position=-1;
+                                long long int final_position=p1_int&255;
+                                for(int j=0; j <= final_position;j++){
+                                    record.get(read_bit);
+                                    if(read_bit=='1')
+                                        data_position++;
+                                    if(j==final_position && read_bit!='1')
+                                        data_position=-1;
+                                }
+                                record.close();
+                                if(data_position==-1){
+                                    if(i==0)
+                                        output_string+="EMPTY\n";
+                                    else
+                                        continue;
+                                }
+                                else{
+                                    record.open(file_string+"/"+to_string(i)+".data", ios::in);
+                                    record.seekg(ios::beg);
+                                    for(int j=0; j < data_position-1;j++){
+                                        record.ignore(numeric_limits<streamsize>::max(),'\n');
+                                    }
+                                    string data_number;
+                                    record >> data_number;
+                                    output_string+=(data_number+"\n");
+                                    record.close();
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
             }   
         }
         else if(instruction == "SCAN"){
             long long int p2_int=stoll(p2);
-            for(int i=0;i <= p2_int-p1_int;i++){
-                if(database.find(p1_int+i) != database.end())
-                    output_string+=(database[p1_int+i]+"\n");
-                else{
-                    output_string+="EMPTY\n";
+            if(!used_disk){
+                for(int i=0;i <= p2_int-p1_int;i++){
+                    if(database.find(p1_int+i) != database.end())
+                        output_string+=(database[p1_int+i]+"\n");
+                    else{
+                        output_string+="EMPTY\n";
+                    }
                 }
+            }
+            else{
+
             }
         }
 

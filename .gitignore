@@ -21,4 +21,5 @@ HW2/HW2_F74076297
 #HW3
 HW3/testmap.cpp
 *.ans
+*.tmp
 HW3/storage
