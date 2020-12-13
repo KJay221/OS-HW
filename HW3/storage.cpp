@@ -61,7 +61,7 @@ int main(int argc, char *argv[]){
     while(getline(file, input)){
         //--------------------change--------------------
         //8GB: 50000000 map.size
-        if(database.size()>50){
+        if(database.size()>200){
             used_disk=true;
             char const *shell_command="./mkdir.sh";
             string file_string="./storage";
@@ -218,7 +218,7 @@ int main(int argc, char *argv[]){
                                         record.ignore(numeric_limits<streamsize>::max(),'\n');
                                     }
                                     string data_number;
-                                    record >> data_number;
+                                    getline(record,data_number);
                                     output_string+=(data_number+"\n");
                                     record.close();
                                     break;
@@ -279,8 +279,6 @@ int main(int argc, char *argv[]){
                                         if(j==final_position && read_bit!='1')
                                             data_position=-1;
                                     }
-                                    cout<<get_index<<" ";
-                                    cout<<data_position<<endl;
                                     record.close();
                                     if(data_position==-1){
                                         if(i==0)
@@ -289,13 +287,13 @@ int main(int argc, char *argv[]){
                                             continue;
                                     }
                                     else{
-                                        cout<<i<<endl;
                                         record.open(file_string+"/"+to_string(i)+".data", ios::in);
-                                        string data_number;
-                                        for(int j=0; j <= data_position;j++){
-                                            getline(record,data_number);
+                                        record.seekg(ios::beg);
+                                        for(int j=0; j < data_position;j++){
+                                            record.ignore(200,'\n');
                                         }
-                                        cout<<data_number<<endl;
+                                        string data_number;
+                                        getline(record,data_number);
                                         output_string+=(data_number+"\n");
                                         record.close();
                                         break;
