@@ -21,6 +21,21 @@ int main(int argc, char *argv[]){
     outpu_filename.erase(pos,string::npos);
     outpu_filename+=".output";
 
+    //lord last memory data
+    map<long long int,string> database;
+    string memory_data_path="./storage/memory.data";
+    fstream file_memory;
+    file_memory.open(memory_data_path, ios::in);
+    if(file_memory){
+        string memory_data="";
+        while(getline(file_memory,memory_data)){
+            pos = memory_data.find(" ");
+            database[stoll(memory_data.substr(0, pos))]=memory_data.substr(pos+1, string::npos);
+        }
+        file_memory.close();
+    }
+    
+    
     //open input file
     fstream file;
     file.open(file_path, ios::in);
@@ -30,7 +45,6 @@ int main(int argc, char *argv[]){
     }
 
     //read instruction
-    map<long long int,string> database;
     string output_string="";
     FILE *output_pt=NULL;
     string input="";
@@ -38,7 +52,7 @@ int main(int argc, char *argv[]){
     while(getline(file, input)){
         //--------------------change--------------------
         //8GB: 50000000 map.size
-        if(database.size()>50){
+        if(database.size()>200){
             used_disk=true;
             char const *shell_command="./mkdir.sh";
             string file_string="./storage";
@@ -243,5 +257,33 @@ int main(int argc, char *argv[]){
         fprintf(output_pt,"%s",output_string.c_str());
         output_string="";
         fclose(output_pt);
+    }
+
+    //put map content in disk
+    char const *shell_command="./mkdir.sh";
+    string file_string="./storage";
+    int status;
+    if(!fork()){/*child process*/
+        execlp(shell_command,shell_command,file_string.c_str(),NULL);
+    }    
+    else{/*parent process*/
+        wait(&status);
+    }
+    memory_data_path="./storage/memory.data";
+    FILE* fp_memory_data=fopen(memory_data_path.c_str(),"w");
+    if(!fp_memory_data)
+        cout<<"can't write file";
+    else{
+        output_string="";
+        while(1){
+            if(database.size()>1)
+                database.erase(database.begin());
+            else
+                break;
+            output_string=to_string(database.begin()->first)+" "+(database.begin()->second)+"\n";
+            //cout<<output_string<<endl;
+            fprintf(fp_memory_data,"%s",output_string.c_str());
+        }
+        fclose(fp_memory_data);
     }
 }
