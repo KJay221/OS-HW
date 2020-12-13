@@ -229,7 +229,7 @@ int main(int argc, char *argv[]){
                 }
             }   
         }
-        else if(instruction == "aSCAN"){
+        else if(instruction == "SCAN"){
             long long int p2_int=stoll(p2);
             if(!used_disk){
                 for(int i=0;i <= p2_int-p1_int;i++){
@@ -241,88 +241,68 @@ int main(int argc, char *argv[]){
                 }
             }
             else{
-                int d=0;
-                while(d<20){
-                    cout<<d<<endl;
-                    d++;
-                    int data_range=p2_int-p1_int+1;
-                    string file_string="./storage/";
-                    long long int index_bit=0;
-                    long long int compare_bit=-72057594037927936;
-                    for(int i=7;i>=1;i--){
-                        index_bit+=(p1_int&compare_bit);
-                        file_string+=to_string((p1_int&compare_bit)>>(i*8));     
-                        if(i != 1)
-                            file_string+="/";
-                        if(i != 7)
-                            compare_bit>>=8;
-                        else
-                            compare_bit=71776119061217280;
-                    }
-                    //read record file
-                    fstream record;
-                    record.open(file_string+"/record.txt", ios::in);
-                    if(!record){
-                        cout<<"condition1"<<endl;
-                        long long int i;
-                        for(i=p1_int;i<=index_bit+255 && i<=p2_int;i++)
-                            output_string+="EMPTY\n";
-                        i++;
-                        if(i<p2_int && i>=0){
-                            p1_int=i;
-                            continue;
-                        }
-                        else
-                            break;
-                    }
+                for(long long int get_index=p1_int; get_index<=p2_int ;get_index++){
+                    if(database.find(get_index) != database.end())
+                        output_string+=(database[get_index]+"\n");   
                     else{
-                        cout<<"condition2"<<endl;
-                        string in_file_number="0";
-                        int record_number=0;
-                        getline(record,in_file_number);
-                        record.close();
-                        record_number=stoi(in_file_number);
-                        fstream read_index,read_data;
-                        string output_data[256];
-                        int start_bit=p1_int&255;
-                        bool scan_end=false;
-                        for(int i=0;i<256;i++)
-                            output_data[i]="";
-                        for(int i=record_number;i>=0;i--){
-                            read_index.open(file_string+"/"+to_string(i)+".index", ios::in);
-                            read_data.open(file_string+"/"+to_string(i)+".data", ios::in);
-                            char read_index_bit=' ';
-                            for(int j=0;j<256 && j<start_bit+data_range;j++){
-                                if(j>=start_bit){
-                                    read_index.get(read_index_bit);
-                                    if(read_index_bit =='1' && output_data[j]==""){
-                                        getline(read_data,output_data[j]);
+                        string file_string="./storage/";
+                        long long int compare_bit=-72057594037927936;
+                        for(int i=7;i>=1;i--){
+                            file_string+=to_string((get_index&compare_bit)>>(i*8));     
+                            if(i != 1)
+                                file_string+="/";
+                            if(i != 7)
+                                compare_bit>>=8;
+                            else
+                                compare_bit=71776119061217280;
+                        }
+                        //read record file
+                        fstream record;
+                        record.open(file_string+"/record.txt", ios::in);
+                        if(!record)
+                            output_string+="EMPTY\n";
+                        else{
+                            string in_file_number="0";
+                            int record_number=0;
+                            if(getline(record,in_file_number)){
+                                record.close();
+                                record_number=stoi(in_file_number);
+                                for(int i=record_number;i>=0;i--){
+                                    record.open(file_string+"/"+to_string(i)+".index", ios::in);
+                                    char read_bit=' ';
+                                    int data_position=-1;
+                                    long long int final_position=get_index&255;
+                                    for(int j=0; j <= final_position;j++){
+                                        record.get(read_bit);
+                                        if(read_bit=='1')
+                                            data_position++;
+                                        if(j==final_position && read_bit!='1')
+                                            data_position=-1;
+                                    }
+                                    cout<<get_index<<" ";
+                                    cout<<data_position<<endl;
+                                    record.close();
+                                    if(data_position==-1){
+                                        if(i==0)
+                                            output_string+="EMPTY\n";
+                                        else
+                                            continue;
+                                    }
+                                    else{
+                                        cout<<i<<endl;
+                                        record.open(file_string+"/"+to_string(i)+".data", ios::in);
+                                        string data_number;
+                                        for(int j=0; j <= data_position;j++){
+                                            getline(record,data_number);
+                                        }
+                                        cout<<data_number<<endl;
+                                        output_string+=(data_number+"\n");
+                                        record.close();
+                                        break;
                                     }
                                 }
                             }
-                            read_index.close();
-                            read_data.close();
-                            bool continue_bit=false;
-                            for(int j=start_bit;j<256 && j<start_bit+data_range;j++){
-                                if(output_data[j]=="" && i!=0){
-                                    continue_bit=true;
-                                    break;
-                                }   
-                            }
-                            if(continue_bit)
-                                continue;
-                            else{
-                                if(p2_int<=start_bit+255)
-                                    scan_end=true;
-                                else
-                                    p1_int=start_bit+256;
-                                break;
-                            }
                         }
-                        if(scan_end)
-                            break;
-                        else
-                            continue;
                     }
                 }
             }
