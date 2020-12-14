@@ -26,10 +26,14 @@ int main(){
         cout<<"input scan max range(bigger than one):";
         cin>>scan_range;
     }
-
+    long long int max_range,min_range;
+    cout<<"max range:";
+    cin>>max_range;
+    cout<<"min range:";
+    cin>>min_range;
     default_random_engine generator(time(NULL));                            
     uniform_int_distribution<int> instruction_generator(0,2);
-    uniform_int_distribution<unsigned long long> number_generator(0,9223372036854775807);
+    uniform_int_distribution<unsigned long long> number_generator(min_range,max_range);
     uniform_int_distribution<int> string_generator(48,122);
     uniform_int_distribution<int> range_generator(2,scan_range);
 
