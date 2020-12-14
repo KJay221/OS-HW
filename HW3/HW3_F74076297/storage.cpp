@@ -61,7 +61,7 @@ int main(int argc, char *argv[]){
     while(getline(file, input)){
         //--------------------change--------------------
         //8GB: 50000000 map.size
-        if(database.size()>50){
+        if(database.size()>200){
             used_disk=true;
             char const *shell_command="./mkdir.sh";
             string file_string="./storage";
